@@ -4390,389 +4390,203 @@ document
    GENERAL SUBMISSION
 ========================================================= */
 
-function getSubmissions(){
+const SUPABASE_URL = "https://lbhapiqbwzgroaxrofrz.supabase.co";
+const SUPABASE_KEY = "sb_publishable__1RjojQKzVNtTcqbXYY2Sw_E3dgBs1k";
 
-return JSON.parse(
-localStorage.getItem(
-"micdropSubmissions"
-) || "[]"
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
 );
 
-}
+let micdropSubmissions = [];
 
 
-function saveSubmissions(submissions){
+async function getSubmissions(){
 
-localStorage.setItem(
-"micdropSubmissions",
-JSON.stringify(submissions)
-);
+  const { data, error } =
+    await supabaseClient
+      .from("Submissions")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-}
+  if(error){
 
+    console.error(
+      "Could not load submissions:",
+      error
+    );
 
-function submitGeneral(){
+    return [];
+  }
 
-const name=
-document
-.getElementById("submissionName")
-.value.trim();
+  micdropSubmissions = data || [];
 
-const title=
-document
-.getElementById("submissionTitleInput")
-.value.trim();
-
-const text=
-document
-.getElementById("submissionText")
-.value.trim();
-
-if(!title || !text){
-
-showToast(
-"Please add a title and your submission."
-);
-
-return;
-
-}
-
-
-const submissions=
-getSubmissions();
-
-
-submissions.unshift({
-
-id:Date.now(),
-
-type:submissionType,
-
-name:name || "Anonymous",
-
-education:
-document.getElementById(
-"submissionEducation"
-).value,
-
-category:
-document.getElementById(
-"submissionCategory"
-).value,
-
-title,
-
-text,
-
-published:false,
-
-date:new Date()
-.toLocaleDateString("en-AU")
-
-});
-
-
-saveSubmissions(submissions);
-
-
-document.getElementById(
-"submissionName"
-).value="";
-
-document.getElementById(
-"submissionTitleInput"
-).value="";
-
-document.getElementById(
-"submissionText"
-).value="";
-
-
-closeSubmission();
-
-showToast(
-"Submission sent to MICDROP."
-);
-
-renderPublicContent();
-
+  return micdropSubmissions;
 }
 
 
 /* =========================================================
-   NEWSLETTER SUBMISSION
+   SUBMIT GENERAL
 ========================================================= */
 
-function submitNewsletter(event){
+async function submitGeneral(){
 
-event.preventDefault();
+  const name =
+    document
+      .getElementById("submissionName")
+      .value.trim();
 
-const form=
-document.getElementById(
-"newsletterForm"
-);
+  const title =
+    document
+      .getElementById("submissionTitleInput")
+      .value.trim();
 
-const fields=
-form.querySelectorAll(
-"input,select,textarea"
-);
+  const text =
+    document
+      .getElementById("submissionText")
+      .value.trim();
 
+  const education =
+    document
+      .getElementById("submissionEducation")
+      .value;
 
-const submissions=
-JSON.parse(
-localStorage.getItem(
-"micdropNewsletterSubmissions"
-) || "[]"
-);
+  const category =
+    document
+      .getElementById("submissionCategory")
+      .value;
 
+  if(!title || !text){
 
-submissions.unshift({
+    showToast(
+      "Please add a title and your submission."
+    );
 
-id:Date.now(),
+    return;
+  }
 
-name:fields[0].value,
+  const { error } =
+    await supabaseClient
+      .from("Submissions")
+      .insert({
 
-education:fields[1].value,
+        type: submissionType,
 
-type:fields[2].value,
+        name: name || "Anonymous",
 
-title:fields[3].value,
+        education: education,
 
-text:fields[4].value,
+        category: category,
 
-date:new Date()
-.toLocaleDateString("en-AU"),
+        title: title,
 
-reviewed:false
+        text: text,
 
-});
+        published: false,
 
+        date: new Date()
+          .toLocaleDateString("en-AU")
 
-localStorage.setItem(
-"micdropNewsletterSubmissions",
-JSON.stringify(submissions)
-);
+      });
 
+  if(error){
 
-form.reset();
+    console.error(
+      "Submission error:",
+      error
+    );
 
-showToast(
-"Your piece has been submitted to MICDROP."
-);
+    showToast(
+      "Something went wrong. Please try again."
+    );
 
-}
+    return;
+  }
 
+  document.getElementById(
+    "submissionName"
+  ).value = "";
 
-/* =========================================================
-   ADMIN LOGIN
-========================================================= */
+  document.getElementById(
+    "submissionTitleInput"
+  ).value = "";
 
-const ADMIN_PASSWORD="SUHAS";
+  document.getElementById(
+    "submissionText"
+  ).value = "";
 
+  closeSubmission();
 
-document.addEventListener(
-"keydown",
-function(event){
+  showToast(
+    "Submission sent to MICDROP."
+  );
 
-if(
-event.ctrlKey &&
-event.shiftKey &&
-event.key.toLowerCase()==="a"
-){
-
-event.preventDefault();
-
-openAdminLogin();
-
-}
-
-}
-);
-
-
-function openAdminLogin(){
-
-const password=
-prompt(
-"MICDROP ADMIN\n\nEnter the admin password:"
-);
-
-if(password===null)return;
-
-if(password===ADMIN_PASSWORD){
-
-openAdmin();
-
-}else{
-
-alert(
-"Incorrect password."
-);
+  await renderPublicContent();
 
 }
-
-}
-
-
-/* =========================================================
-   OPEN ADMIN
-========================================================= */
-
-function openAdmin(){
-
-document
-.getElementById("mainPage")
-.classList.remove("active");
-
-document
-.getElementById("spacePage")
-.classList.remove("active");
-
-document
-.getElementById("adminPage")
-.classList.add("active");
-
-document.body.style.overflow="hidden";
-
-refreshAdmin();
-
-}
-
-
-function closeAdmin(){
-
-document
-.getElementById("adminPage")
-.classList.remove("active");
-
-document
-.getElementById("mainPage")
-.classList.add("active");
-
-document.body.style.overflow="";
-
-window.scrollTo(0,0);
-
-}
-
-
-/* =========================================================
-   ADMIN SECTIONS
-========================================================= */
-
-function showAdminSection(name,button){
-
-document
-.querySelectorAll(".admin-section")
-.forEach(section=>{
-section.classList.remove("active");
-});
-
-const target=
-document.getElementById(
-"admin-"+name
-);
-
-if(target){
-target.classList.add("active");
-}
-
-
-document
-.querySelectorAll(".admin-tab")
-.forEach(btn=>{
-btn.classList.remove("active");
-});
-
-
-if(button){
-button.classList.add("active");
-}
-
-}
-
-
-function showAdminSectionByName(name){
-
-const button=
-Array.from(
-document.querySelectorAll(".admin-tab")
-).find(
-btn=>btn.getAttribute("onclick") &&
-btn.getAttribute("onclick").includes(
-`'${name}'`
-)
-);
-
-showAdminSection(name,button);
-
-}
-
 
 /* =========================================================
    ADMIN REFRESH
 ========================================================= */
 
-function refreshAdmin(){
+async function refreshAdmin(){
 
-renderAdminStats();
+  await renderAdminStats();
 
-renderDailyThoughtAdmin();
+  renderDailyThoughtAdmin();
 
-renderAllSubmissions();
+  await renderAllSubmissions();
 
-renderProblemSubmissions();
+  await renderProblemSubmissions();
 
-renderConversationSubmissions();
+  await renderConversationSubmissions();
 
-renderCommunitySubmissions();
+  await renderCommunitySubmissions();
 
-renderNewsletterSubmissions();
+  renderNewsletterSubmissions();
 
-renderPublishedAdmin();
+  await renderPublishedAdmin();
 
-renderPublicContent();
+  renderPublicContent();
 
 }
-
-
+  
 /* =========================================================
    ADMIN STATS
 ========================================================= */
 
-function renderAdminStats(){
+async function renderAdminStats(){
 
-const submissions=
-getSubmissions();
+  const submissions =
+    await getSubmissions();
 
-document.getElementById(
-"statThoughts"
-).textContent=
-submissions.filter(
-s=>s.type==="thought"
-).length;
+  document.getElementById(
+    "statThoughts"
+  ).textContent =
+    submissions.filter(
+      s => s.type === "thought"
+    ).length;
 
-document.getElementById(
-"statProblems"
-).textContent=
-submissions.filter(
-s=>s.type==="problem"
-).length;
+  document.getElementById(
+    "statProblems"
+  ).textContent =
+    submissions.filter(
+      s => s.type === "problem"
+    ).length;
 
-document.getElementById(
-"statConversations"
-).textContent=
-submissions.filter(
-s=>s.type==="conversation"
-).length;
+  document.getElementById(
+    "statConversations"
+  ).textContent =
+    submissions.filter(
+      s => s.type === "conversation"
+    ).length;
 
-document.getElementById(
-"statCommunity"
-).textContent=
-submissions.filter(
-s=>s.type==="community"
-).length;
+  document.getElementById(
+    "statCommunity"
+  ).textContent =
+    submissions.filter(
+      s => s.type === "community"
+    ).length;
 
 }
 
@@ -4781,68 +4595,81 @@ s=>s.type==="community"
    EDIT SUBMISSION
 ========================================================= */
 
-function toggleEdit(id){
+async function saveEditedSubmission(id){
 
-const area=
-document.getElementById(
-"edit-"+id
-);
+  const submissions =
+    await getSubmissions();
 
-if(area){
+  const submission =
+    submissions.find(
+      s => s.id === id
+    );
 
-area.classList.toggle("active");
+  if(!submission) return;
 
-}
+  const title =
+    document
+      .getElementById(
+        "editTitle-" + id
+      )
+      .value.trim();
 
-}
+  const name =
+    document
+      .getElementById(
+        "editName-" + id
+      )
+      .value.trim();
 
+  const text =
+    document
+      .getElementById(
+        "editText-" + id
+      )
+      .value.trim();
 
-function saveEditedSubmission(id){
+  submission.title =
+    title || submission.title;
 
-const submissions=
-getSubmissions();
+  submission.name =
+    name || "Anonymous";
 
-const submission=
-submissions.find(
-s=>s.id===id
-);
+  submission.text =
+    text;
 
-if(!submission)return;
+  const { error } =
+    await supabaseClient
+      .from("Submissions")
+      .update({
 
+        title: submission.title,
 
-const title=
-document.getElementById(
-"editTitle-"+id
-).value.trim();
+        name: submission.name,
 
-const name=
-document.getElementById(
-"editName-"+id
-).value.trim();
+        text: submission.text
 
-const text=
-document.getElementById(
-"editText-"+id
-).value.trim();
+      })
+      .eq("id", id);
 
+  if(error){
 
-submission.title=
-title || submission.title;
+    console.error(
+      "Update error:",
+      error
+    );
 
-submission.name=
-name || "Anonymous";
+    showToast(
+      "Could not update submission."
+    );
 
-submission.text=
-text;
+    return;
+  }
 
+  await refreshAdmin();
 
-saveSubmissions(submissions);
-
-refreshAdmin();
-
-showToast(
-"Submission updated."
-);
+  showToast(
+    "Submission updated."
+  );
 
 }
 
@@ -4851,27 +4678,35 @@ showToast(
    PUBLISH SUBMISSION
 ========================================================= */
 
-function publishSubmission(id){
+async function publishSubmission(id){
 
-const submissions=
-getSubmissions();
+  const { error } =
+    await supabaseClient
+      .from("Submissions")
+      .update({
+        published: true
+      })
+      .eq("id", id);
 
-const submission=
-submissions.find(
-s=>s.id===id
-);
+  if(error){
 
-if(!submission)return;
+    console.error(
+      "Publish error:",
+      error
+    );
 
-submission.published=true;
+    showToast(
+      "Could not publish submission."
+    );
 
-saveSubmissions(submissions);
+    return;
+  }
 
-refreshAdmin();
+  await refreshAdmin();
 
-showToast(
-"Published to MICDROP."
-);
+  showToast(
+    "Published to MICDROP."
+  );
 
 }
 
@@ -4880,27 +4715,35 @@ showToast(
    UNPUBLISH
 ========================================================= */
 
-function unpublishSubmission(id){
+async function unpublishSubmission(id){
 
-const submissions=
-getSubmissions();
+  const { error } =
+    await supabaseClient
+      .from("Submissions")
+      .update({
+        published: false
+      })
+      .eq("id", id);
 
-const submission=
-submissions.find(
-s=>s.id===id
-);
+  if(error){
 
-if(!submission)return;
+    console.error(
+      "Unpublish error:",
+      error
+    );
 
-submission.published=false;
+    showToast(
+      "Could not unpublish submission."
+    );
 
-saveSubmissions(submissions);
+    return;
+  }
 
-refreshAdmin();
+  await refreshAdmin();
 
-showToast(
-"Submission unpublished."
-);
+  showToast(
+    "Submission unpublished."
+  );
 
 }
 
@@ -4909,40 +4752,65 @@ showToast(
    DELETE SUBMISSION
 ========================================================= */
 
-function deleteSubmission(id){
+async function deleteSubmission(id){
 
-if(
-!confirm(
-"Delete this submission permanently?"
-)
-)return;
+  if(
+    !confirm(
+      "Delete this submission permanently?"
+    )
+  ) return;
 
+  const { error } =
+    await supabaseClient
+      .from("Submissions")
+      .delete()
+      .eq("id", id);
 
-saveSubmissions(
-getSubmissions().filter(
-s=>s.id!==id
-)
-);
+  if(error){
 
-refreshAdmin();
+    console.error(
+      "Delete error:",
+      error
+    );
 
-showToast(
-"Submission deleted."
-);
+    showToast(
+      "Could not delete submission."
+    );
+
+    return;
+  }
+
+  await refreshAdmin();
+
+  showToast(
+    "Submission deleted."
+  );
 
 }
-
-
 /* =========================================================
    SUBMISSION CARD
 ========================================================= */
 
+function toggleEdit(id){
+
+  const area =
+    document.getElementById(
+      "edit-" + id
+    );
+
+  if(area){
+    area.classList.toggle("active");
+  }
+
+}
+
+
 function submissionCard(
-submission,
-showType=true
+  submission,
+  showType = true
 ){
 
-return `
+  return `
 
 <div class="admin-card">
 
@@ -4951,18 +4819,27 @@ return `
 <div>
 
 <h3>
-${escapeHTML(submission.title)}
+${escapeHTML(submission.title || "")}
 </h3>
 
 <div class="admin-meta">
 
-${showType ? escapeHTML(submission.type)+" · " : ""}
+${
+showType
+? escapeHTML(submission.type || "") + " · "
+: ""
+}
 
 Submitted by
-${escapeHTML(submission.name || "Anonymous")}
+${escapeHTML(
+submission.name || "Anonymous"
+)}
 
 ·
-${escapeHTML(submission.date)}
+
+${escapeHTML(
+submission.date || ""
+)}
 
 </div>
 
@@ -4972,7 +4849,9 @@ ${escapeHTML(submission.date)}
 
 
 <div class="admin-submission-text">
-${escapeHTML(submission.text)}
+${escapeHTML(
+submission.text || ""
+)}
 </div>
 
 
@@ -5039,7 +4918,9 @@ Author name
 
 <input
 id="editName-${submission.id}"
-value="${escapeAttribute(submission.name || "Anonymous")}"
+value="${escapeAttribute(
+submission.name || "Anonymous"
+)}"
 >
 
 
@@ -5049,7 +4930,9 @@ Title
 
 <input
 id="editTitle-${submission.id}"
-value="${escapeAttribute(submission.title)}"
+value="${escapeAttribute(
+submission.title || ""
+)}"
 >
 
 
@@ -5059,7 +4942,9 @@ Submission
 
 <textarea
 id="editText-${submission.id}"
->${escapeHTML(submission.text)}</textarea>
+>${escapeHTML(
+submission.text || ""
+)}</textarea>
 
 
 <div class="admin-actions">
@@ -5086,36 +4971,36 @@ Save Changes
    ALL SUBMISSIONS
 ========================================================= */
 
-function renderAllSubmissions(){
+async function renderAllSubmissions(){
 
-const container=
-document.getElementById(
-"allSubmissionsContainer"
-);
+  const container =
+    document.getElementById(
+      "allSubmissionsContainer"
+    );
 
-const submissions=
-getSubmissions();
+  if(!container)return;
 
-if(!submissions.length){
+  const submissions =
+    await getSubmissions();
 
-container.innerHTML=`
-<div class="no-submissions">
-No submissions yet.
-</div>
-`;
+  if(!submissions.length){
 
-return;
+    container.innerHTML = `
+      <div class="no-submissions">
+        No submissions yet.
+      </div>
+    `;
 
-}
+    return;
+  }
 
-
-container.innerHTML=
-submissions
-.map(
-submission=>
-submissionCard(submission)
-)
-.join("");
+  container.innerHTML =
+    submissions
+      .map(
+        submission =>
+          submissionCard(submission)
+      )
+      .join("");
 
 }
 
@@ -5124,40 +5009,41 @@ submissionCard(submission)
    PROBLEMS
 ========================================================= */
 
-function renderProblemSubmissions(){
+async function renderProblemSubmissions(){
 
-const container=
-document.getElementById(
-"problemSubmissionsContainer"
-);
+  const container =
+    document.getElementById(
+      "problemSubmissionsContainer"
+    );
 
-const submissions=
-getSubmissions().filter(
-s=>s.type==="problem"
-);
+  if(!container)return;
 
-if(!submissions.length){
+  const submissions =
+    (await getSubmissions()).filter(
+      s => s.type === "problem"
+    );
 
-container.innerHTML=`
-<div class="no-submissions">
-No problem submissions yet.
-</div>
-`;
+  if(!submissions.length){
 
-return;
+    container.innerHTML = `
+      <div class="no-submissions">
+        No problem submissions yet.
+      </div>
+    `;
 
-}
+    return;
+  }
 
-container.innerHTML=
-submissions
-.map(
-submission=>
-submissionCard(
-submission,
-false
-)
-)
-.join("");
+  container.innerHTML =
+    submissions
+      .map(
+        submission =>
+          submissionCard(
+            submission,
+            false
+          )
+      )
+      .join("");
 
 }
 
@@ -5166,86 +5052,86 @@ false
    CONVERSATIONS
 ========================================================= */
 
-function renderConversationSubmissions(){
+async function renderConversationSubmissions(){
 
-const container=
-document.getElementById(
-"conversationSubmissionsContainer"
-);
+  const container =
+    document.getElementById(
+      "conversationSubmissionsContainer"
+    );
 
-const submissions=
-getSubmissions().filter(
-s=>s.type==="conversation"
-);
+  if(!container)return;
 
-if(!submissions.length){
+  const submissions =
+    (await getSubmissions()).filter(
+      s => s.type === "conversation"
+    );
 
-container.innerHTML=`
-<div class="no-submissions">
-No conversation submissions yet.
-</div>
-`;
+  if(!submissions.length){
 
-return;
+    container.innerHTML = `
+      <div class="no-submissions">
+        No conversation submissions yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    submissions
+      .map(
+        submission =>
+          submissionCard(
+            submission,
+            false
+          )
+      )
+      .join("");
 
 }
-
-container.innerHTML=
-submissions
-.map(
-submission=>
-submissionCard(
-submission,
-false
-)
-)
-.join("");
-
-}
-
-
+  
 /* =========================================================
    COMMUNITY
 ========================================================= */
 
-function renderCommunitySubmissions(){
+async function renderCommunitySubmissions(){
 
-const container=
-document.getElementById(
-"communitySubmissionsContainer"
-);
+  const container =
+    document.getElementById(
+      "communitySubmissionsContainer"
+    );
 
-const submissions=
-getSubmissions().filter(
-s=>s.type==="community"
-);
+  if(!container)return;
 
-if(!submissions.length){
+  const submissions =
+    (await getSubmissions()).filter(
+      s => s.type === "community"
+    );
 
-container.innerHTML=`
-<div class="no-submissions">
-No community submissions yet.
-</div>
-`;
+  if(!submissions.length){
 
-return;
+    container.innerHTML = `
+      <div class="no-submissions">
+        No community submissions yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    submissions
+      .map(
+        submission =>
+          submissionCard(
+            submission,
+            false
+          )
+      )
+      .join("");
 
 }
-
-container.innerHTML=
-submissions
-.map(
-submission=>
-submissionCard(
-submission,
-false
-)
-)
-.join("");
-
-}
-
-
+  
 /* =========================================================
    DAILY THOUGHT ADMIN
 ========================================================= */
@@ -5436,74 +5322,73 @@ showToast(
 
 function getNewsletterSubmissions(){
 
-return JSON.parse(
-localStorage.getItem(
-"micdropNewsletterSubmissions"
-) || "[]"
-);
+  return JSON.parse(
+    localStorage.getItem(
+      "micdropNewsletterSubmissions"
+    ) || "[]"
+  );
 
 }
 
 
 function renderNewsletterSubmissions(){
 
-const container=
-document.getElementById(
-"newsletterSubmissionsContainer"
-);
+  const container =
+    document.getElementById(
+      "newsletterSubmissionsContainer"
+    );
 
-const submissions=
-getNewsletterSubmissions();
+  if(!container)return;
 
-if(!submissions.length){
+  const submissions =
+    getNewsletterSubmissions();
 
-container.innerHTML=`
-<div class="no-submissions">
-No newsletter submissions yet.
-</div>
-`;
+  if(!submissions.length){
 
-return;
+    container.innerHTML = `
+      <div class="no-submissions">
+        No newsletter submissions yet.
+      </div>
+    `;
 
-}
+    return;
+  }
 
-
-container.innerHTML=
-submissions
-.map(
-submission=>`
+  container.innerHTML =
+    submissions
+      .map(
+        submission => `
 
 <div class="admin-card">
 
 <h3>
-${escapeHTML(submission.title)}
+${escapeHTML(submission.title || "")}
 </h3>
 
 <div class="admin-meta">
 
-${escapeHTML(submission.name)}
+${escapeHTML(submission.name || "Anonymous")}
 ·
-${escapeHTML(submission.type)}
+${escapeHTML(submission.type || "")}
 ·
-${escapeHTML(submission.date)}
+${escapeHTML(submission.date || "")}
 
 </div>
 
 <div class="admin-submission-text">
 
-${escapeHTML(submission.text)}
+${escapeHTML(submission.text || "")}
 
 </div>
 
 </div>
 
 `
-)
-.join("");
+      )
+      .join("");
 
 }
-
-
+  
 /* =========================================================
    PUBLISHED NEWSLETTERS
 ========================================================= */
@@ -5701,48 +5586,52 @@ ${escapeHTML(newsletter.text)}
    PUBLISHED ADMIN
 ========================================================= */
 
-function renderPublishedAdmin(){
+async function renderPublishedAdmin(){
 
-const container=
-document.getElementById(
-"publishedAdminContainer"
-);
+  const container =
+    document.getElementById(
+      "publishedAdminContainer"
+    );
 
-const submissions=
-getSubmissions().filter(
-s=>s.published
-);
+  if(!container)return;
 
-if(!submissions.length){
+  const submissions =
+    (await getSubmissions()).filter(
+      s => s.published
+    );
 
-container.innerHTML=`
-<div class="no-submissions">
-Nothing has been published yet.
-</div>
-`;
+  if(!submissions.length){
 
-return;
+    container.innerHTML = `
+      <div class="no-submissions">
+        Nothing has been published yet.
+      </div>
+    `;
 
-}
+    return;
+  }
 
-
-container.innerHTML=
-submissions
-.map(
-submission=>`
+  container.innerHTML =
+    submissions
+      .map(
+        submission => `
 
 <div class="admin-card">
 
 <h3>
-${escapeHTML(submission.title)}
+${escapeHTML(submission.title || "")}
 </h3>
 
 <div class="admin-meta">
-${escapeHTML(submission.name || "Anonymous")}
+${escapeHTML(
+  submission.name || "Anonymous"
+)}
 </div>
 
 <div class="admin-submission-text">
-${escapeHTML(submission.text)}
+${escapeHTML(
+  submission.text || ""
+)}
 </div>
 
 <div class="admin-actions">
@@ -5759,92 +5648,93 @@ Unpublish
 </div>
 
 `
-)
-.join("");
+      )
+      .join("");
 
 }
-
-
+  
 /* =========================================================
    PUBLIC CONTENT
 ========================================================= */
 
-function renderPublicContent(){
+async function renderPublicContent(){
 
-renderPublicCommunity();
+  await renderPublicCommunity();
 
-renderPublicNewsletters();
-
-}
-
-
-function renderPublicCommunity(){
-
-const container=
-document.getElementById(
-"publishedCommunity"
-);
-
-const empty=
-document.getElementById(
-"communityEmpty"
-);
-
-if(!container || !empty)return;
-
-const submissions=
-getSubmissions().filter(
-s=>s.published
-);
-
-if(!submissions.length){
-
-container.innerHTML="";
-
-empty.style.display="flex";
-
-return;
+  renderPublicNewsletters();
 
 }
 
+async function renderPublicCommunity(){
 
-empty.style.display="none";
+  const container =
+    document.getElementById(
+      "publishedCommunity"
+    );
 
+  const empty =
+    document.getElementById(
+      "communityEmpty"
+    );
 
-container.innerHTML=`
+  if(!container || !empty)return;
+
+  const submissions =
+    (await getSubmissions()).filter(
+      s => s.published
+    );
+
+  if(!submissions.length){
+
+    container.innerHTML = "";
+
+    empty.style.display = "flex";
+
+    return;
+  }
+
+  empty.style.display = "none";
+
+  container.innerHTML = `
 
 <div class="published-grid">
 
 ${
-
-submissions
-.map(
-submission=>`
+  submissions
+    .map(
+      submission => `
 
 <article class="published-card">
 
 <div class="small-label">
-${escapeHTML(submission.category || "MICDROP")}
+${escapeHTML(
+  submission.category || "MICDROP"
+)}
 </div>
 
 <h3>
-${escapeHTML(submission.title)}
+${escapeHTML(
+  submission.title || ""
+)}
 </h3>
 
 <div class="piece-text">
-${escapeHTML(submission.text)}
+${escapeHTML(
+  submission.text || ""
+)}
 </div>
 
 <div class="author">
-— ${escapeHTML(submission.name || "Anonymous")}
+— ${escapeHTML(
+  submission.name || "Anonymous"
+)}
 </div>
 
 </article>
 
 `
-)
-.join("")
-
+    )
+    .join("")
 }
 
 </div>
@@ -5852,79 +5742,6 @@ ${escapeHTML(submission.text)}
 `;
 
 }
-
-
-function renderPublicNewsletters(){
-
-const container=
-document.getElementById(
-"publicNewsletters"
-);
-
-if(!container)return;
-
-const newsletters=
-getPublishedNewsletters();
-
-if(!newsletters.length){
-
-container.innerHTML=`
-
-<div
-class="community-empty"
-style="grid-column:1/-1"
->
-
-<div class="community-mark">
-soon.
-</div>
-
-<h3>
-No newsletters yet.
-</h3>
-
-<p>
-The first MICDROP newsletter will appear here
-once it has been published.
-</p>
-
-</div>
-
-`;
-
-return;
-
-}
-
-
-container.innerHTML=
-newsletters
-.map(
-newsletter=>`
-
-<article class="newsletter-card">
-
-<div class="newsletter-date">
-${escapeHTML(newsletter.date)}
-</div>
-
-<h3>
-${escapeHTML(newsletter.title)}
-</h3>
-
-<p>
-${escapeHTML(newsletter.text)}
-</p>
-
-</article>
-
-`
-)
-.join("");
-
-}
-
-
 /* =========================================================
    TOAST
 ========================================================= */
