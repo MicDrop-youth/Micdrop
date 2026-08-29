@@ -4486,24 +4486,26 @@ async function submitGeneral(){
   const { error } =
     await supabaseClient
       .from("Submissions")
-      .insert({
+.insert({
 
-        type: submissionType,
+  type: submissionType,
 
-name: name || "Anonymous",
+  name: name || "Anonymous",
 
-category: category,
+  education: education,
 
-title: title,
+  category: category,
 
-        text: text,
+  title: title,
 
-        published: false,
+  text: text,
 
-        date: new Date()
-          .toLocaleDateString("en-AU")
+  published: false,
 
-      });
+  date: new Date()
+    .toLocaleDateString("en-AU")
+
+});
 
   if(error){
 
