@@ -5252,219 +5252,25 @@ async function renderCommunitySubmissions(){
 /* =========================================================
    DAILY THOUGHT ADMIN
 ========================================================= */
-
-function saveDailyThought(){
-
-const input=
-document.getElementById(
-"dailyThoughtInput"
-);
-
-const thought=
-input.value.trim();
-
-if(!thought){
-
-showToast(
-"Write a thought first."
-);
-
-return;
-
-}
-
-localStorage.setItem(
-"micdropCurrentThought",
-thought
-);
-
-renderDailyThought();
-
-renderDailyThoughtAdmin();
-
-input.value="";
-
-showToast(
-"Today's thought updated."
-);
-
-}
-
-
-function renderDailyThoughtAdmin(){
-
-const current=
-getCurrentThought();
-
-document.getElementById(
-"currentDailyThoughtAdmin"
-).textContent=
-current;
-
-const library=
-getThoughtLibrary();
-
-const container=
-document.getElementById(
-"dailyThoughtLibrary"
-);
-
-container.innerHTML="";
-
-
-library.forEach(
-(thought,index)=>{
-
-const item=
-document.createElement("div");
-
-item.className=
-"daily-item";
-
-item.innerHTML=`
-
-<div class="daily-item-text">
-${escapeHTML(thought)}
-</div>
-
-<div class="admin-actions">
-
-<button
-class="admin-btn"
-onclick="useLibraryThought(${index})"
->
-Use
-</button>
-
-<button
-class="admin-btn delete"
-onclick="deleteLibraryThought(${index})"
->
-Delete
-</button>
-
-</div>
-
-`;
-
-container.appendChild(item);
-
-}
-);
-
-}
-
-
-function useLibraryThought(index){
-
-const thoughts=
-getThoughtLibrary();
-
-if(!thoughts[index])return;
-
-localStorage.setItem(
-"micdropCurrentThought",
-thoughts[index]
-);
-
-renderDailyThought();
-
-renderDailyThoughtAdmin();
-
-showToast(
-"Today's thought updated."
-);
-
-}
-
-
-function deleteLibraryThought(index){
-
-const thoughts=
-getThoughtLibrary();
-
-if(thoughts.length<=1){
-
-showToast(
-"Keep at least one thought."
-);
-
-return;
-
-}
-
-thoughts.splice(index,1);
-
-saveThoughtLibrary(thoughts);
-
-renderDailyThoughtAdmin();
-
-showToast(
-"Thought removed."
-);
-
-}
-
-
-function addThoughtToLibrary(){
-
-const thought=
-prompt(
-"Add a new thought to your library:"
-);
-
-if(!thought || !thought.trim())return;
-
-const thoughts=
-getThoughtLibrary();
-
-thoughts.push(
-thought.trim()
-);
-
-saveThoughtLibrary(thoughts);
-
-renderDailyThoughtAdmin();
-
-showToast(
-"Thought added."
-);
-
-}
-
-
-/* =========================================================
-   NEWSLETTER ADMIN
-========================================================= */
-
-function getNewsletterSubmissions(){
-
-  return JSON.parse(
-    localStorage.getItem(
-      "micdropNewsletterSubmissions"
-    ) || "[]"
-  );
-
-}
-
-
-function renderNewsletterSubmissions(){
+async function renderDailyThoughtAdmin(){
 
   const container =
     document.getElementById(
-      "newsletterSubmissionsContainer"
+      "dailyThoughtLibrary"
     );
 
   if(!container)return;
 
   const submissions =
-    getNewsletterSubmissions();
+    (await getSubmissions()).filter(
+      s => s.type === "thought"
+    );
 
   if(!submissions.length){
 
     container.innerHTML = `
       <div class="no-submissions">
-        No newsletter submissions yet.
+        No daily thoughts submitted yet.
       </div>
     `;
 
@@ -5474,33 +5280,11 @@ function renderNewsletterSubmissions(){
   container.innerHTML =
     submissions
       .map(
-        submission => `
-
-<div class="admin-card">
-
-<h3>
-${escapeHTML(submission.title || "")}
-</h3>
-
-<div class="admin-meta">
-
-${escapeHTML(submission.name || "Anonymous")}
-·
-${escapeHTML(submission.type || "")}
-·
-${escapeHTML(submission.date || "")}
-
-</div>
-
-<div class="admin-submission-text">
-
-${escapeHTML(submission.text || "")}
-
-</div>
-
-</div>
-
-`
+        submission =>
+          submissionCard(
+            submission,
+            false
+          )
       )
       .join("");
 
