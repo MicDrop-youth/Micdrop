@@ -4550,6 +4550,74 @@ async function refreshAdmin(){
   renderPublicContent();
 
 }
+
+  /* =========================================================
+   ADMIN LOGIN
+========================================================= */
+
+const ADMIN_PASSWORD = "SUHAS";
+
+document.addEventListener("keydown", function(event){
+
+  if(
+    event.ctrlKey &&
+    event.shiftKey &&
+    event.key.toLowerCase() === "a"
+  ){
+
+    event.preventDefault();
+
+    openAdminLogin();
+
+  }
+
+});
+
+
+function openAdminLogin(){
+
+  const password = prompt(
+    "MICDROP ADMIN\n\nEnter the admin password:"
+  );
+
+  if(password === null) return;
+
+  if(password === ADMIN_PASSWORD){
+
+    openAdmin();
+
+  }else{
+
+    alert("Incorrect password.");
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN ADMIN
+========================================================= */
+
+function openAdmin(){
+
+  document
+    .getElementById("mainPage")
+    .classList.remove("active");
+
+  document
+    .getElementById("spacePage")
+    .classList.remove("active");
+
+  document
+    .getElementById("adminPage")
+    .classList.add("active");
+
+  document.body.style.overflow = "hidden";
+
+  refreshAdmin();
+
+}
   
 /* =========================================================
    ADMIN STATS
