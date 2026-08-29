@@ -4543,6 +4543,37 @@ async function submitGeneral(){
 
 }
 
+  /* =========================================================
+   ADMIN SECTION NAVIGATION
+========================================================= */
+
+function showAdminSection(sectionId, button){
+
+  document
+    .querySelectorAll(".admin-section")
+    .forEach(section => {
+      section.classList.remove("active");
+    });
+
+  const section =
+    document.getElementById(sectionId);
+
+  if(section){
+    section.classList.add("active");
+  }
+
+  document
+    .querySelectorAll(".admin-tab")
+    .forEach(tab => {
+      tab.classList.remove("active");
+    });
+
+  if(button){
+    button.classList.add("active");
+  }
+
+}
+  
 /* =========================================================
    ADMIN REFRESH
 ========================================================= */
