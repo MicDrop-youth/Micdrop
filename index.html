@@ -3542,7 +3542,7 @@ Newsletter title
 <input
 id="newNewsletterTitle"
 placeholder="MICDROP — Issue 01"
-/>
+>
 
 
 <label>
@@ -3552,17 +3552,67 @@ Newsletter date
 <input
 id="newNewsletterDate"
 type="date"
-/>
+>
 
 
 <label>
-Newsletter content
+Canva newsletter PDF
 </label>
 
-<textarea
-id="newNewsletterText"
-placeholder="Paste or write the newsletter here..."
-></textarea>
+<div
+id="newsletterDropZone"
+style="
+margin-top:10px;
+padding:45px 25px;
+border:2px dashed rgba(255,255,255,.5);
+text-align:center;
+cursor:pointer;
+"
+onclick="document.getElementById('newsletterFile').click()"
+>
+
+<div style="font-size:30px;">
+＋
+</div>
+
+<div style="
+font-size:12px;
+font-weight:800;
+margin-top:8px;
+">
+Drag & drop your PDF here
+</div>
+
+<div style="
+font-size:9px;
+opacity:.65;
+margin-top:6px;
+">
+or click to choose a PDF
+</div>
+
+</div>
+
+
+<input
+type="file"
+id="newsletterFile"
+accept="application/pdf"
+style="display:none;"
+onchange="handleNewsletterFile(this)"
+>
+
+
+<p
+id="newsletterFileName"
+style="
+font-size:10px;
+margin-top:10px;
+opacity:.7;
+"
+>
+No file selected.
+</p>
 
 
 <button
@@ -3571,14 +3621,12 @@ style="
 background:white;
 margin-top:10px;
 "
-onclick="publishNewsletter()"
+onclick="publishNewsletterPDF()"
 >
 Publish Newsletter
 </button>
 
 </div>
-
-
 <div class="admin-card">
 
 <h3>
@@ -5346,174 +5394,193 @@ JSON.stringify(newsletters)
 }
 
 
-function publishNewsletter(){
-
-const title=
-document.getElementById(
-"newNewsletterTitle"
-).value.trim();
-
-const date=
-document.getElementById(
-"newNewsletterDate"
-).value;
-
-const text=
-document.getElementById(
-"newNewsletterText"
-).value.trim();
+let selectedNewsletterFile = null;
 
 
-if(!title || !text){
+function handleNewsletterFile(input){
 
-showToast(
-"Add a title and newsletter content."
-);
+  selectedNewsletterFile =
+    input.files[0] || null;
 
-return;
+  const name =
+    document.getElementById(
+      "newsletterFileName"
+    );
 
-}
+  if(selectedNewsletterFile){
 
+    name.textContent =
+      "📄 " +
+      selectedNewsletterFile.name;
 
-const newsletters=
-getPublishedNewsletters();
+  }else{
 
-newsletters.unshift({
+    name.textContent =
+      "No file selected.";
 
-id:Date.now(),
-
-title,
-
-date:
-date ||
-new Date()
-.toLocaleDateString("en-AU"),
-
-text
-
-});
-
-
-savePublishedNewsletters(newsletters);
-
-
-document.getElementById(
-"newNewsletterTitle"
-).value="";
-
-document.getElementById(
-"newNewsletterDate"
-).value="";
-
-document.getElementById(
-"newNewsletterText"
-).value="";
-
-
-renderPublishedNewslettersAdmin();
-
-renderPublicContent();
-
-showToast(
-"Newsletter published."
-);
+  }
 
 }
 
 
-function deleteNewsletter(id){
+async function publishNewsletterPDF(){
 
-if(
-!confirm(
-"Delete this published newsletter?"
-)
-)return;
+  const title =
+    document.getElementById(
+      "newNewsletterTitle"
+    ).value.trim();
+
+  const date =
+    document.getElementById(
+      "newNewsletterDate"
+    ).value;
+
+  if(!title){
+
+    showToast(
+      "Add a newsletter title."
+    );
+
+    return;
+  }
+
+  if(!selectedNewsletterFile){
+
+    showToast(
+      "Please choose your Canva PDF."
+    );
+
+    return;
+  }
+
+  if(
+    selectedNewsletterFile.type !==
+    "application/pdf"
+  ){
+
+    showToast(
+      "Please upload a PDF file."
+    );
+
+    return;
+  }
 
 
-savePublishedNewsletters(
-getPublishedNewsletters()
-.filter(
-newsletter=>newsletter.id!==id
-)
-);
+  showToast(
+    "Uploading newsletter..."
+  );
 
-renderPublishedNewslettersAdmin();
 
-renderPublicContent();
+  const fileName =
+    Date.now() +
+    "-" +
+    selectedNewsletterFile.name
+      .replace(/[^a-zA-Z0-9._-]/g,"-");
 
-showToast(
-"Newsletter deleted."
-);
+
+  const { error: uploadError } =
+    await supabaseClient
+      .storage
+      .from("newsletters")
+      .upload(
+        fileName,
+        selectedNewsletterFile,
+        {
+          contentType:"application/pdf",
+          upsert:false
+        }
+      );
+
+
+  if(uploadError){
+
+    console.error(
+      "Newsletter upload error:",
+      uploadError
+    );
+
+    showToast(
+      "Newsletter upload failed."
+    );
+
+    return;
+  }
+
+
+  const { data: publicData } =
+    supabaseClient
+      .storage
+      .from("newsletters")
+      .getPublicUrl(fileName);
+
+
+  const fileUrl =
+    publicData.publicUrl;
+
+
+  const { error: databaseError } =
+    await supabaseClient
+      .from("Newsletters")
+      .insert({
+
+        title:title,
+
+        date:
+          date ||
+          new Date()
+            .toLocaleDateString("en-AU"),
+
+        file_url:fileUrl
+
+      });
+
+
+  if(databaseError){
+
+    console.error(
+      "Newsletter database error:",
+      databaseError
+    );
+
+    showToast(
+      "Newsletter could not be saved."
+    );
+
+    return;
+  }
+
+
+  document.getElementById(
+    "newNewsletterTitle"
+  ).value = "";
+
+  document.getElementById(
+    "newNewsletterDate"
+  ).value = "";
+
+  document.getElementById(
+    "newsletterFile"
+  ).value = "";
+
+  document.getElementById(
+    "newsletterFileName"
+  ).textContent =
+    "No file selected.";
+
+
+  selectedNewsletterFile = null;
+
+
+  await renderPublishedNewslettersAdmin();
+
+  await renderPublicContent();
+
+
+  showToast(
+    "Newsletter published."
+  );
 
 }
-
-
-function renderPublishedNewslettersAdmin(){
-
-const container=
-document.getElementById(
-"adminPublishedNewsletters"
-);
-
-const newsletters=
-getPublishedNewsletters();
-
-if(!newsletters.length){
-
-container.innerHTML=`
-<div class="no-submissions">
-No published newsletters yet.
-</div>
-`;
-
-return;
-
-}
-
-
-container.innerHTML=
-newsletters
-.map(
-newsletter=>`
-
-<div class="admin-card">
-
-<div class="admin-card-header">
-
-<div>
-
-<h3>
-${escapeHTML(newsletter.title)}
-</h3>
-
-<div class="admin-meta">
-${escapeHTML(newsletter.date)}
-</div>
-
-</div>
-
-<button
-class="admin-btn delete"
-onclick="deleteNewsletter(${newsletter.id})"
->
-Delete
-</button>
-
-</div>
-
-<div class="admin-submission-text">
-${escapeHTML(newsletter.text)}
-</div>
-
-</div>
-
-`
-)
-.join("");
-
-}
-
-
 /* =========================================================
    PUBLISHED ADMIN
 ========================================================= */
@@ -5749,7 +5816,105 @@ closeSubmission();
 /* =========================================================
    INITIALISE
 ========================================================= */
+/* =========================================================
+   PUBLISHED NEWSLETTERS ADMIN
+========================================================= */
 
+async function renderPublishedNewslettersAdmin(){
+
+  const container =
+    document.getElementById(
+      "adminPublishedNewsletters"
+    );
+
+  if(!container)return;
+
+  const { data, error } =
+    await supabaseClient
+      .from("Newsletters")
+      .select("*")
+      .order(
+        "created_at",
+        {
+          ascending:false
+        }
+      );
+
+  if(error){
+
+    console.error(
+      "Newsletter loading error:",
+      error
+    );
+
+    container.innerHTML = `
+      <div class="no-submissions">
+        Could not load newsletters.
+      </div>
+    `;
+
+    return;
+  }
+
+  if(!data || !data.length){
+
+    container.innerHTML = `
+      <div class="no-submissions">
+        No published newsletters yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    data.map(
+      newsletter => `
+
+        <div class="admin-card">
+
+          <div class="admin-card-header">
+
+            <div>
+
+              <h3>
+                ${escapeHTML(
+                  newsletter.title || ""
+                )}
+              </h3>
+
+              <div class="admin-meta">
+                ${escapeHTML(
+                  newsletter.date || ""
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="admin-actions">
+
+            <a
+              class="admin-btn"
+              href="${escapeAttribute(
+                newsletter.file_url
+              )}"
+              target="_blank"
+              rel="noopener"
+            >
+              View Newsletter PDF
+            </a>
+
+          </div>
+
+        </div>
+
+      `
+    )
+    .join("");
+
+}
 renderDrafts();
 
 renderPublicContent();
