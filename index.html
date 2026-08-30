@@ -5254,6 +5254,22 @@ async function renderCommunitySubmissions(){
 ========================================================= */
 async function renderDailyThoughtAdmin(){
 
+  const current =
+    getCurrentThought();
+
+  const currentBox =
+    document.getElementById(
+      "currentDailyThoughtAdmin"
+    );
+
+  if(currentBox){
+    currentBox.textContent =
+      current || "No thought selected yet.";
+  }
+
+  const library =
+    getThoughtLibrary();
+
   const container =
     document.getElementById(
       "dailyThoughtLibrary"
@@ -5261,32 +5277,47 @@ async function renderDailyThoughtAdmin(){
 
   if(!container)return;
 
-  const submissions =
-    (await getSubmissions()).filter(
-      s => s.type === "thought"
-    );
+  container.innerHTML = "";
 
-  if(!submissions.length){
+  library.forEach(
+    (thought,index) => {
 
-    container.innerHTML = `
-      <div class="no-submissions">
-        No daily thoughts submitted yet.
-      </div>
-    `;
+      const item =
+        document.createElement("div");
 
-    return;
-  }
+      item.className =
+        "daily-item";
 
-  container.innerHTML =
-    submissions
-      .map(
-        submission =>
-          submissionCard(
-            submission,
-            false
-          )
-      )
-      .join("");
+      item.innerHTML = `
+
+        <div class="daily-item-text">
+          ${escapeHTML(thought)}
+        </div>
+
+        <div class="admin-actions">
+
+          <button
+            class="admin-btn"
+            onclick="useLibraryThought(${index})"
+          >
+            Use
+          </button>
+
+          <button
+            class="admin-btn delete"
+            onclick="deleteLibraryThought(${index})"
+          >
+            Delete
+          </button>
+
+        </div>
+
+      `;
+
+      container.appendChild(item);
+
+    }
+  );
 
 }
   
